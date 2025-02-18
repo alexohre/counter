@@ -1,100 +1,119 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from 'react';
+import Image from 'next/image';
+import Snowfall from './components/snowfall'; // Make sure to create this component in the same directory
 
 export default function Home() {
+  const [count, setCount] = useState(12);
+
+  const increaseCount = () => setCount(prev => prev + 1);
+  const decreaseCount = () => setCount(prev => (prev > 0 ? prev - 1 : 0));
+  const resetCount = () => setCount(0);
+  const getCount = () => alert(`Current count is: ${count}`);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
+    <div className="min-h-screen relative flex flex-col" suppressHydrationWarning>
+      {/* Snowfall Effect */}
+      <Snowfall />
+      
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
+          src="/background.jpg" // Make sure this image exists in your public folder
+          alt="Background"
+          fill
+          style={{ objectFit: 'cover' }}
           priority
         />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+        {/* Overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-black/30"></div>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Header */}
+      <header className="relative z-10 bg-blue-500 py-4 px-6 shadow-md flex justify-between items-center">
+        <Image
+          src="/logo.png"
+          alt="Counter Logo"
+          width={150}
+          height={40}
+          className="object-contain"
+        />
+        <button 
+          className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg
+            transition-all duration-300 transform hover:scale-105 shadow-md"
+          onClick={() => alert('Wallet connected!')}
+        >
+          Connect Wallet
+        </button>
+      </header>
+
+      {/* Main Content - Centered Card */}
+      <main className="relative z-10 flex-grow flex items-center justify-center px-4 py-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-xl mx-auto">
+          <h2 className="text-center text-gray-600 text-xl mb-4">Current Count Is</h2>
+          
+          <div className="text-center mb-12">
+            <span className="text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+              {count}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <button
+              onClick={increaseCount}
+              className="bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600
+                        transition-all duration-300 transform hover:scale-105 shadow-md
+                        hover:shadow-emerald-300/50 flex justify-center items-center space-x-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              <span>Increase</span>
+            </button>
+            
+            <button
+              onClick={decreaseCount}
+              className="bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600
+                        transition-all duration-300 transform hover:scale-105 shadow-md
+                        hover:shadow-red-300/50 flex justify-center items-center space-x-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+              <span>Decrease</span>
+            </button>
+            
+            <button
+              onClick={resetCount}
+              className="bg-amber-500 text-white py-3 px-4 rounded-lg hover:bg-amber-600
+                        transition-all duration-300 transform hover:scale-105 shadow-md
+                        hover:shadow-amber-300/50 flex justify-center items-center space-x-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+              <span>Reset</span>
+            </button>
+            
+            <button
+              onClick={getCount}
+              className="bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600
+                        transition-all duration-300 transform hover:scale-105 shadow-md
+                        hover:shadow-blue-300/50 flex justify-center items-center space-x-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h.01a1 1 0 100-2H9z" clipRule="evenodd" />
+              </svg>
+              <span>Get Count</span>
+            </button>
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="relative z-10 text-center py-6 text-white">
+        <p>Built with Next.js and Tailwind CSS • {new Date().getFullYear()}</p>
       </footer>
     </div>
   );
