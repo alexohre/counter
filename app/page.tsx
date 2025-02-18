@@ -1,11 +1,16 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Snowfall from './components/snowfall'; // Make sure to create this component in the same directory
 
 export default function Home() {
   const [count, setCount] = useState(12);
+  const [year, setYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
 
   const increaseCount = () => setCount(prev => prev + 1);
   const decreaseCount = () => setCount(prev => (prev > 0 ? prev - 1 : 0));
@@ -113,7 +118,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-10 text-center py-6 text-white">
-        <p>Built with Next.js and Tailwind CSS • {new Date().getFullYear()}</p>
+        <p>Built with Next.js and Tailwind CSS • {year ?? "..."}</p>
       </footer>
     </div>
   );
