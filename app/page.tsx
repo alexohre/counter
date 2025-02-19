@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import Snowfall from './components/snowfall'; // Make sure to create this component in the same directory
+import Snowfall from './components/snowfall';
+import Link from 'next/link';
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+
 
 export default function Home() {
-  const [count, setCount] = useState(12);
+  const [count, setCount] = useState<number>(12);
   const [year, setYear] = useState<number | null>(null);
 
   useEffect(() => {
@@ -23,17 +26,19 @@ export default function Home() {
       <Snowfall />
       
       {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/background.jpg" // Make sure this image exists in your public folder
-          alt="Background"
-          fill
-          style={{ objectFit: 'cover' }}
-          priority
-        />
-        {/* Overlay to ensure text readability */}
-        <div className="absolute inset-0 bg-black/30"></div>
-      </div>
+      <Link href="/">
+        <div className="absolute inset-0 z-0 cursor-pointer">
+          <Image
+            src="/background.jpg" // Make sure this image exists in your public folder
+            alt="Background"
+            fill
+            style={{ objectFit: 'cover' }}
+            priority
+          />
+          {/* Overlay to ensure text readability */}
+          <div className="absolute inset-0 bg-black/30"></div>
+        </div>
+      </Link>
 
       {/* Header */}
       <header className="relative z-10 bg-blue-500 py-4 px-6 shadow-md flex justify-between items-center">
@@ -44,13 +49,7 @@ export default function Home() {
           height={40}
           className="object-contain"
         />
-        <button 
-          className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg
-            transition-all duration-300 transform hover:scale-105 shadow-md"
-          onClick={() => alert('Wallet connected!')}
-        >
-          Connect Wallet
-        </button>
+        <ConnectButton />
       </header>
 
       {/* Main Content - Centered Card */}
