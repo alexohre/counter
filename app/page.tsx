@@ -5,15 +5,28 @@ import Image from "next/image";
 import Snowfall from "./components/snowfall";
 import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useReadContract, useWriteContract } from "wagmi";
+import {
+	type BaseError,
+	useAccount,
+	useWaitForTransactionReceipt,
+	useReadContract,
+	useWriteContract,
+} from "wagmi";
 import { wagmiContractConfig } from "./contract";
 
 export default function Home() {
-	// const [count, setCount] = useState<number>(12);
 	const [year, setYear] = useState<number | null>(null);
 	const [inputValue, setInputValue] = useState<number>(0);
 
 	const [isLoading, setIsLoading] = useState(false);
+
+	const { address, isConnected } = useAccount();
+
+	const [loadingStates, setLoadingStates] = useState({
+		increase: false,
+		decrease: false,
+		reset: false,
+	});
 
 	useEffect(() => {
 		setYear(new Date().getFullYear());
@@ -27,36 +40,33 @@ export default function Home() {
 		...wagmiContractConfig,
 		functionName: "getCount",
 		args: [],
-		// query: {
-		//   enabled: !!address,
-		// },
+		query: {
+			enabled: !!address,
+		},
 	});
+	const {
+		writeContract,
+		data: hash,
+		error: writeError,
+		isPending: isPendingWrite,
+	} = useWriteContract();
+
+	const { isLoading: isConfirming, isSuccess: isConfirmed } =
+		useWaitForTransactionReceipt({
+			hash,
+		});
 
 	const { refetch } = useReadContract({
 		...wagmiContractConfig,
 		functionName: "getCount",
 		args: [],
 	});
-	const handleGetCount = async () => {
-		try {
-			await refetch();
-		} catch (error) {
-			console.error("Error refetching count:", error);
-		} finally {
-			console.log("Refetched count");
-		}
-	};
 
-	const { writeContract } = useWriteContract();
 	// handle increment by one
 	const handleIncreaseClick = async () => {
-		if (isLoading) return; // Prevent clicking while already loading
+		if (loadingStates.increase || isPending || isConfirming) return;
 
-		setIsLoading(true);
-
-		setTimeout(() => {
-			setIsLoading(false);
-		}, 5000);
+		setLoadingStates((prev) => ({ ...prev, increase: true }));
 		try {
 			await writeContract({
 				...wagmiContractConfig,
@@ -65,18 +75,23 @@ export default function Home() {
 			});
 		} catch (error) {
 			console.error("Error calling CountIncreased:", error);
+		} finally {
+			setLoadingStates((prev) => ({ ...prev, increase: false }));
 		}
 	};
 
+	// Refetch count when transaction is confirmed
+	useEffect(() => {
+		if (isConfirmed) {
+			refetch();
+		}
+	}, [isConfirmed, refetch]);
+
 	// handle decrement by one
 	const handleDecreaseClick = async () => {
-		if (isLoading) return; // Prevent clicking while already loading
+		if (loadingStates.decrease || isPending || isConfirming) return;
 
-		setIsLoading(true);
-
-		setTimeout(() => {
-			setIsLoading(false);
-		}, 5000);
+		setLoadingStates((prev) => ({ ...prev, decrease: true }));
 		try {
 			await writeContract({
 				...wagmiContractConfig,
@@ -85,18 +100,16 @@ export default function Home() {
 			});
 		} catch (error) {
 			console.error("Error calling CountIncreased:", error);
+		} finally {
+			setLoadingStates((prev) => ({ ...prev, decrease: false }));
 		}
 	};
 
 	// handle reset count to zero
 	const handleResetClick = async () => {
-		if (isLoading) return; // Prevent clicking while already loading
+		if (loadingStates.reset || isPending || isConfirming) return;
 
-		setIsLoading(true);
-
-		setTimeout(() => {
-			setIsLoading(false);
-		}, 5000);
+		setLoadingStates((prev) => ({ ...prev, reset: true }));
 		try {
 			await writeContract({
 				...wagmiContractConfig,
@@ -105,11 +118,16 @@ export default function Home() {
 			});
 		} catch (error) {
 			console.error("Error calling CountIncreased:", error);
+		} finally {
+			setLoadingStates((prev) => ({ ...prev, reset: false }));
 		}
 	};
 
 	// handle increment by value
 	const handleIncrementByVal = async (val: number) => {
+		if (loadingStates.increase || isPending || isConfirming) return;
+
+		setLoadingStates((prev) => ({ ...prev, increase: true }));
 		try {
 			await writeContract({
 				...wagmiContractConfig,
@@ -120,11 +138,15 @@ export default function Home() {
 			console.error("Error calling CountIncreased:", error);
 		} finally {
 			console.log("Incremented by ", val);
+			setLoadingStates((prev) => ({ ...prev, increase: false }));
 		}
 	};
 
 	// handle decrement by value
 	const handleDecrementByVal = async (val: number) => {
+		if (loadingStates.decrease || isPending || isConfirming) return;
+
+		setLoadingStates((prev) => ({ ...prev, decrease: true }));
 		try {
 			await writeContract({
 				...wagmiContractConfig,
@@ -134,7 +156,7 @@ export default function Home() {
 		} catch (error) {
 			console.error("Error calling CountDecreased:", error);
 		} finally {
-			console.log("Incremented by ", val);
+			setLoadingStates((prev) => ({ ...prev, decrease: false }));
 		}
 	};
 
@@ -157,6 +179,23 @@ export default function Home() {
 			handleDecreaseClick();
 		}
 	};
+
+	const LoadingIndicator = () => (
+		<span className="flex items-center">
+			<div className="bouncing-dots">
+				<div className="bouncing-dot"></div>
+				<div className="bouncing-dot"></div>
+				<div className="bouncing-dot"></div>
+			</div>
+			<span className="ml-2">
+				{isConfirming
+					? "Confirming..."
+					: isLoading
+					? "Pending..."
+					: "Loading..."}
+			</span>
+		</span>
+	);
 
 	console.log({ count, error, isPending });
 
@@ -197,151 +236,129 @@ export default function Home() {
 				/>
 			</header>
 
-			{/* Main Content - Centered Card */}
+			{/* Main Content */}
 			<main className="relative z-10 flex-grow flex items-center justify-center px-4 py-8">
 				<div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-xl mx-auto">
-					<h2 className="text-center text-gray-600 text-xl mb-4">
-						Current Count Is
-					</h2>
+					{!isConnected ? (
+						<div className="text-center">
+							<h2 className="text-2xl font-bold text-gray-700 mb-4">
+								Welcome to Counter dApp
+							</h2>
+							<p className="text-gray-600 mb-8">
+								Connect your wallet to start!
+							</p>
+							<div className="flex items-center justify-center">
+								<ConnectButton />
+							</div>
+						</div>
+					) : (
+						<>
+							<h2 className="text-center text-gray-600 text-xl mb-4">
+								Current Count Is
+							</h2>
 
-					<div className="text-center mb-12">
-						<span className="text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-							{count?.toString() ?? "NoN"}
-						</span>
-					</div>
-					<div className="text-center mb-4">
-						<input
-							type="text"
-							value={inputValue}
-							onChange={(e) => setInputValue(Number(e.target.value))}
-							placeholder="eg. 5"
-							className="w-full p-4 text-base outline-blue-500 border border-sky-500 rounded-lg"
-						/>
-					</div>
-
-					<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-						<button
-							onClick={handleCondIncreaseClick}
-							disabled={isLoading}
-							className="bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600
-                        transition-all duration-300 transform hover:scale-105 shadow-md
-                        hover:shadow-emerald-300/50 flex justify-center items-center space-x-2"
-						>
-							{isLoading ? (
-								// Render the bouncing dots when loading
-								<span>
-									<div className="bouncing-dots">
-										<div className="bouncing-dot"></div>
-										<div className="bouncing-dot"></div>
-										<div className="bouncing-dot"></div>
-									</div>
+							<div className="text-center mb-12">
+								<span className="text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+									{count?.toString() ?? "N"}
 								</span>
-							) : (
-								<>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										className="h-5 w-5"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-									>
-										<path
-											fillRule="evenodd"
-											d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-											clipRule="evenodd"
-										/>
-									</svg>
-									<span>Increase</span>
-								</>
-							)}
-						</button>
-
-						<button
-							onClick={handleCondDecreaseClick}
-							disabled={isLoading}
-							className="bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600
-                        transition-all duration-300 transform hover:scale-105 shadow-md
-                        hover:shadow-red-300/50 flex justify-center items-center space-x-2"
-						>
-							{isLoading ? (
-								// Render the bouncing dots when loading
-								<div className="bouncing-dots">
-									<div className="bouncing-dot"></div>
-									<div className="bouncing-dot"></div>
-									<div className="bouncing-dot"></div>
-								</div>
-							) : (
-								<>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										className="h-5 w-5"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-									>
-										<path
-											fillRule="evenodd"
-											d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
-											clipRule="evenodd"
-										/>
-									</svg>
-									<span>Decrease</span>
-								</>
-							)}
-						</button>
-
-						<button
-							onClick={handleResetClick}
-							disabled={isLoading}
-							className="bg-amber-500 text-white py-3 px-4 rounded-lg hover:bg-amber-600
-                        transition-all duration-300 transform hover:scale-105 shadow-md
-                        hover:shadow-amber-300/50 flex justify-center items-center space-x-2"
-						>
-							{isLoading ? (
-								// Render the bouncing dots when loading
-								<div className="bouncing-dots">
-									<div className="bouncing-dot"></div>
-									<div className="bouncing-dot"></div>
-									<div className="bouncing-dot"></div>
-								</div>
-							) : (
-								<>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										className="h-5 w-5"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-									>
-										<path
-											fillRule="evenodd"
-											d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-											clipRule="evenodd"
-										/>
-									</svg>
-									<span>Reset</span>
-								</>
-							)}
-						</button>
-
-						<button
-							onClick={handleGetCount}
-							className="bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600
-                        transition-all duration-300 transform hover:scale-105 shadow-md
-                        hover:shadow-blue-300/50 flex justify-center items-center space-x-2"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								className="h-5 w-5"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fillRule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h.01a1 1 0 100-2H9z"
-									clipRule="evenodd"
+							</div>
+							<div className="text-center mb-4">
+								<input
+									type="text"
+									value={inputValue}
+									onChange={(e) => setInputValue(Number(e.target.value))}
+									placeholder="eg. 5"
+									className="w-full p-4 text-base text-black outline-blue-500 border border-sky-500 rounded-lg"
 								/>
-							</svg>
-							<span>Get Count</span>
-						</button>
-					</div>
+							</div>
+
+							<div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+								<button
+									onClick={handleCondIncreaseClick}
+									disabled={loadingStates.increase || isPending || isConfirming}
+									className="bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600
+										transition-all duration-300 transform hover:scale-105 shadow-md
+										hover:shadow-emerald-300/50 flex justify-center items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									{loadingStates.increase || isLoading || isConfirming ? (
+										<LoadingIndicator />
+									) : (
+										<>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												className="h-5 w-5"
+												viewBox="0 0 20 20"
+												fill="currentColor"
+											>
+												<path
+													fillRule="evenodd"
+													d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+													clipRule="evenodd"
+												/>
+											</svg>
+											<span>Increase</span>
+										</>
+									)}
+								</button>
+
+								<button
+									onClick={handleCondDecreaseClick}
+									disabled={loadingStates.decrease || isPending || isConfirming}
+									className="bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600
+										transition-all duration-300 transform hover:scale-105 shadow-md
+										hover:shadow-red-300/50 flex justify-center items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									{loadingStates.decrease || isPending || isConfirming ? (
+										<LoadingIndicator />
+									) : (
+										<>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												className="h-5 w-5"
+												viewBox="0 0 20 20"
+												fill="currentColor"
+											>
+												<path
+													fillRule="evenodd"
+													d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
+													clipRule="evenodd"
+												/>
+											</svg>
+											<span>Decrease</span>
+										</>
+									)}
+								</button>
+
+								<button
+									onClick={handleResetClick}
+									disabled={loadingStates.reset || isPending || isConfirming}
+									className="col-span-2 md:col-span-1 bg-amber-500 text-white py-3 px-4 rounded-lg hover:bg-amber-600
+										transition-all duration-300 transform hover:scale-105 shadow-md
+										hover:shadow-amber-300/50 flex justify-center items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									{loadingStates.reset || isPending || isConfirming ? (
+										<LoadingIndicator />
+									) : (
+										<>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												className="h-5 w-5"
+												viewBox="0 0 20 20"
+												fill="currentColor"
+											>
+												<path
+													fillRule="evenodd"
+													d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+													clipRule="evenodd"
+												/>
+											</svg>
+											<span>Reset</span>
+										</>
+									)}
+								</button>
+							</div>
+						</>
+					)}
 				</div>
 			</main>
 

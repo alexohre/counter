@@ -1,5 +1,6 @@
 "use client"
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { JSX } from 'react/jsx-runtime';
 
 // Define the Snowflake interface
 interface Snowflake {
