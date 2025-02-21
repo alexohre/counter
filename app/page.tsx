@@ -36,6 +36,7 @@ export default function Home() {
 		data: count,
 		error,
 		isPending,
+		refetch,
 	} = useReadContract({
 		...wagmiContractConfig,
 		functionName: "getCount",
@@ -44,6 +45,7 @@ export default function Home() {
 			enabled: !!address,
 		},
 	});
+
 	const {
 		writeContract,
 		data: hash,
@@ -55,12 +57,6 @@ export default function Home() {
 		useWaitForTransactionReceipt({
 			hash,
 		});
-
-	const { refetch } = useReadContract({
-		...wagmiContractConfig,
-		functionName: "getCount",
-		args: [],
-	});
 
 	// handle increment by one
 	const handleIncreaseClick = async () => {
